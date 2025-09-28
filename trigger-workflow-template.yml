@@ -1,0 +1,26 @@
+name: Trigger PR Analysis Bot
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  trigger-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger PR Analysis Bot
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          repository: YOUR_USERNAME/GithubPRBot # Replace with your bot repository
+          event-type: pr-opened
+          client-payload: |
+            {
+              "pr_number": ${{ github.event.pull_request.number }},
+              "repo_owner": "${{ github.repository_owner }}",
+              "repo_name": "${{ github.event.repository.name }}",
+              "action": "${{ github.event.action }}",
+              "pr_title": "${{ github.event.pull_request.title }}",
+              "pr_author": "${{ github.event.pull_request.user.login }}"
+            }
