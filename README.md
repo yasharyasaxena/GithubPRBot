@@ -25,9 +25,9 @@ Bot Repository (YourUsername/GithubPRBot)
 1. **Add GitHub Secrets** (Settings → Secrets and variables → Actions):
 
    ```
-   GROQ_API_KEY=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
+   GROQ_API_KEY=
    DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
-   DISCORD_USER_ID=818014774784163880
+   DISCORD_USER_ID=
    PERSONAL_ACCESS_TOKEN=ghp_... (GitHub token with repo permissions)
    ```
 
