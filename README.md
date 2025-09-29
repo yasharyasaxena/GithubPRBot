@@ -1,208 +1,183 @@
-# GitHub PR Analysis Bot - Automated Workflow
+# GitHub PR Analysis Bot 🤖
 
-This setup allows your PR analysis bot to automatically run whenever there's a new PR in any target repository, even if the bot code is in a different repository.
+An intelligent GitHub PR analyzer that provides comprehensive summaries using AI, with Discord integration for team notifications.
 
-## 🏗️ Architecture
+## 🚀 Features
+
+- **AI-Powered Analysis**: Uses Groq AI to generate concise, intelligent PR summaries
+- **Comprehensive Context**: Analyzes PR descriptions, comments, reviews, and file changes
+- **Discord Integration**: Sends formatted analysis results to Discord with rich embeds
+- **Cross-Repository Support**: Can analyze PRs from any public/accessible repository
+- **Multiple Execution Options**: Manual execution or automated via GitHub Actions
+
+## 📁 Project Structure
 
 ```
-Target Repository (FounderFeedAdmin/TheBundle-AI)
-    ├── New PR created
-    ├── Trigger workflow runs
-    └── Sends repository_dispatch to Bot Repository
-
-Bot Repository (YourUsername/GithubPRBot)
-    ├── Receives repository_dispatch
-    ├── Runs PR analysis workflow
-    ├── Fetches PR data from target repo
-    ├── Generates AI summary
-    └── Sends results to Discord
+GithubPRBot/
+├── main.py                           # Main script for manual execution
+├── main_workflow.py                  # GitHub Actions compatible version
+├── .github/workflows/pr-analysis.yml # GitHub Actions workflow
+├── trigger-workflow-template.yml     # Template for target repository
+├── .env                             # Environment variables (local)
+├── README.md                        # This file
+└── venv/                           # Python virtual environment
 ```
 
-## 🚀 Quick Setup
+## �️ Setup
 
-### 1. Set Up Bot Repository (This Repository)
+### Environment Variables
+
+Create a `.env` file with:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+DISCORD_WEBHOOK_URL=your_discord_webhook_url
+DISCORD_USER_ID=your_discord_user_id
+```
+
+### Dependencies
+
+Install required packages:
+
+```bash
+pip install requests groq python-dotenv
+```
+
+## 🎯 Usage Options
+
+### Option 1: Manual Execution
+
+1. **Configure the PR details** in `main.py`:
+
+   ```python
+   REPO_OWNER = "FounderFeedAdmin"
+   REPO_NAME = "TheBundle-AI"
+   PR_NUMBER = 357
+   ```
+
+2. **Run the script**:
+   ```bash
+   python main.py
+   ```
+
+### Option 2: GitHub Actions (When Enabled)
 
 1. **Add GitHub Secrets** (Settings → Secrets and variables → Actions):
 
    ```
-   GROQ_API_KEY=
-   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
-   DISCORD_USER_ID=
-   PERSONAL_ACCESS_TOKEN=ghp_... (GitHub token with repo permissions)
+   GROQ_API_KEY=your_groq_api_key
+   DISCORD_WEBHOOK_URL=your_discord_webhook_url
+   DISCORD_USER_ID=your_discord_user_id
+   PERSONAL_ACCESS_TOKEN=github_token_with_repo_permissions
    ```
 
 2. **The workflow is already set up** in `.github/workflows/pr-analysis.yml`
 
-### 2. Set Up Target Repository (FounderFeedAdmin/TheBundle-AI)
+3. **Set up target repository** with trigger workflow:
+   - Copy `trigger-workflow-template.yml` to target repo
+   - Place in `.github/workflows/trigger-pr-bot.yml`
+   - Update repository reference to your bot repo
+   - Add `PERSONAL_ACCESS_TOKEN` secret to target repository
 
-1. **Create workflow file**: `.github/workflows/trigger-pr-bot.yml`
+### Option 3: Manual Workflow Execution
 
-   ```yaml
-   name: Trigger PR Analysis Bot
+Run specific PR analysis via GitHub Actions UI:
 
-   on:
-     pull_request:
-       types: [opened, reopened, synchronize]
+1. Go to Actions → PR Analysis Bot
+2. Click "Run workflow"
+3. Enter PR details manually
 
-   jobs:
-     trigger-analysis:
-       runs-on: ubuntu-latest
+## � Configuration
 
-       steps:
-         - name: Trigger PR Analysis Bot
-           uses: peter-evans/repository-dispatch@v2
-           with:
-             token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-             repository: YourUsername/GithubPRBot # Replace with your bot repo
-             event-type: pr-opened
-             client-payload: |
-               {
-                 "pr_number": ${{ github.event.pull_request.number }},
-                 "repo_owner": "${{ github.repository_owner }}",
-                 "repo_name": "${{ github.event.repository.name }}",
-                 "action": "${{ github.event.action }}",
-                 "pr_title": "${{ github.event.pull_request.title }}",
-                 "pr_author": "${{ github.event.pull_request.user.login }}"
-               }
-   ```
+### Target Repository
 
-2. **Add the PERSONAL_ACCESS_TOKEN secret** to the target repository
+Edit these values in `main.py`:
 
-## 🔑 Required Secrets
+```python
+REPO_OWNER = "YourOrg"      # Repository owner
+REPO_NAME = "YourRepo"      # Repository name
+PR_NUMBER = 123             # PR number to analyze
+```
 
-### Bot Repository Secrets
+### Discord Integration
 
-- `GROQ_API_KEY` - Your Groq API key
-- `DISCORD_WEBHOOK_URL` - Discord webhook URL
-- `DISCORD_USER_ID` - Your Discord user ID for mentions
-- `PERSONAL_ACCESS_TOKEN` - GitHub token (not used in bot repo, but good to have)
+The bot sends rich Discord embeds with:
 
-### Target Repository Secrets
+- PR overview and statistics
+- AI-generated analysis summary
+- Key file changes
+- Review feedback (when available)
+- User mentions for notifications
 
-- `PERSONAL_ACCESS_TOKEN` - GitHub Personal Access Token with `repo` permissions
+## 📊 Analysis Output
+
+The bot provides:
+
+**🎯 What This PR Does**
+
+- Brief explanation of the PR's main purpose
+
+**🔧 Key Changes**
+
+- Technical changes and modifications
+- New features, bug fixes, refactoring
+- File structure changes
+
+**💬 Review Feedback**
+
+- Summary of reviewer comments and concerns
+- Code review insights
+
+**📁 Major Files**
+
+- Significant file additions, modifications, deletions
+- Critical configuration changes
+
+## 🤖 AI Analysis
+
+- **Smart Context Building**: Prioritizes meaningful comments and descriptions
+- **Comprehensive Coverage**: Never misses important technical changes
+- **Concise Output**: Focused summaries under 1000 characters
+- **Multi-source Analysis**: Combines PR description, comments, reviews, and file changes
+
+## � Security
+
+- All sensitive data stored in environment variables
+- GitHub token with minimal required permissions
+- Discord webhook URLs kept secure
+- No sensitive information logged
 
 ## 🧪 Testing
-
-### Manual Testing
-
-1. Go to your bot repository → Actions → "PR Analysis Bot"
-2. Click "Run workflow"
-3. Enter:
-   - PR Number: `357`
-   - Repository Owner: `FounderFeedAdmin`
-   - Repository Name: `TheBundle-AI`
-4. Click "Run workflow"
-
-### Automatic Testing
-
-1. Create a new PR in the target repository
-2. The trigger workflow should run automatically
-3. Check the bot repository Actions tab for the analysis workflow
-4. Check Discord for the analysis results
 
 ### Local Testing
 
 ```bash
-# Set environment variables
-export REPO_OWNER=FounderFeedAdmin
-export REPO_NAME=TheBundle-AI
-export PR_NUMBER=357
-export GITHUB_TOKEN=your_github_token
+# For manual execution
+python main.py
 
-# Run the workflow script
+# For workflow testing (set environment variables first)
 python main_workflow.py
 ```
 
-## 📁 File Structure
+### GitHub Actions Testing (When Enabled)
 
-```
-GithubPRBot/
-├── .github/workflows/
-│   └── pr-analysis.yml          # Main workflow (runs in bot repo)
-├── main_workflow.py             # Workflow-compatible version of main.py
-├── trigger-workflow-template.yml # Template for target repo
-├── setup_workflow.py            # Setup guide script
-├── main.py                      # Original standalone script
-├── .env                         # Local environment variables
-└── README_WORKFLOW.md           # This file
-```
+1. Go to Actions → PR Analysis Bot → Run workflow
+2. Enter PR details manually
+3. Check Discord for results
 
-## 🔄 How It Works
+## � Future Enhancements
 
-1. **PR Created**: New PR created in target repository (FounderFeedAdmin/TheBundle-AI)
-2. **Trigger**: Target repo workflow sends `repository_dispatch` event to bot repo
-3. **Analysis**: Bot repo workflow receives event and runs PR analysis
-4. **Processing**: Fetches PR data, generates AI summary with Groq
-5. **Notification**: Sends formatted results to Discord with mentions
+- Support for multiple target repositories
+- Customizable analysis templates
+- Integration with more AI models
+- Slack integration option
+- Scheduled analysis reports
+- Webhook-based automation (alternative to GitHub Actions)
 
-## ⚡ Features
+## 📝 License
 
-- **Automatic triggering** on new PRs, reopened PRs, and PR updates
-- **Cross-repository support** - bot can analyze PRs in any repository
-- **Manual execution** for testing or analyzing specific PRs
-- **Comprehensive analysis** including comments, reviews, file changes
-- **Discord integration** with rich embeds and user mentions
-- **Error handling** and logging for debugging
-- **Artifact storage** saves analysis results for later review
+MIT License - feel free to use and modify for your projects.
 
-## 🛠️ Customization
+---
 
-### Monitor Different Repositories
-
-Change the repository details in the target repo's trigger workflow:
-
-```yaml
-repository: YourUsername/GithubPRBot # Your bot repository
-```
-
-### Modify Trigger Events
-
-Edit the `on:` section in the target repo workflow:
-
-```yaml
-on:
-  pull_request:
-    types: [opened, reopened, synchronize, closed] # Add more events
-```
-
-### Adjust Analysis Settings
-
-Modify `main_workflow.py`:
-
-- Change AI model or parameters
-- Customize Discord message format
-- Add more data sources (issues, commits, etc.)
-
-## 🚨 Troubleshooting
-
-### Workflow Not Triggering
-
-- Check if PERSONAL_ACCESS_TOKEN has `repo` permissions
-- Verify the bot repository name is correct in target repo workflow
-- Ensure both repositories have Actions enabled
-
-### Analysis Fails
-
-- Check GitHub token permissions
-- Verify all secrets are set correctly
-- Look at workflow logs in Actions tab
-
-### Discord Not Working
-
-- Verify webhook URL is correct
-- Check if Discord server allows webhooks
-- Ensure user ID is correct for mentions
-
-## 📊 Monitoring
-
-- **GitHub Actions**: Check workflow runs in both repositories
-- **Discord**: Monitor for analysis messages
-- **Artifacts**: Download saved analysis files from workflow runs
-- **Logs**: Review workflow logs for debugging
-
-## 🔐 Security
-
-- All sensitive data stored as GitHub secrets
-- Tokens have minimal required permissions
-- No sensitive data in logs or artifacts
-- Webhook URLs are not exposed in code
+**Made with ❤️ for better PR reviews and team collaboration**
