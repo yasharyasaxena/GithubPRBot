@@ -15,6 +15,13 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Clear any proxy environment variables that might interfere with Groq client
+proxy_vars = ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY']
+for var in proxy_vars:
+    if var in os.environ:
+        logger.warning(f"Removing proxy environment variable: {var}")
+        del os.environ[var]
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -335,7 +342,49 @@ def send_to_discord(pr_info, summary, event_action=None):
 # --- Function to get concise summary from Groq ---
 def get_comprehensive_summary_from_groq(pr_info):
     """Creates a concise summary prioritizing comments, descriptions, and key changes."""
-    client = Groq(api_key=GROQ_API_KEY)
+    try:
+        # Initialize Groq client with explicit parameters to avoid proxy conflicts
+        logger.debug("Initializing Groq client...")
+        
+        # Create a clean environment for Groq client initialization
+        # Some deployment environments pass proxy settings that Groq doesn't support
+        original_env = os.environ.copy()
+        
+        # Temporarily remove proxy variables during client initialization
+        temp_removed = {}
+        proxy_vars = ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY', 'proxies']
+        for var in proxy_vars:
+            if var in os.environ:
+                temp_removed[var] = os.environ[var]
+                del os.environ[var]
+        
+        try:
+            client = Groq(api_key=GROQ_API_KEY)
+            logger.debug("Groq client initialized successfully")
+        finally:
+            # Restore removed environment variables
+            for var, value in temp_removed.items():
+                os.environ[var] = value
+                
+    except TypeError as e:
+        logger.error(f"Groq client initialization failed with TypeError: {e}")
+        # This specific error suggests parameter incompatibility
+        try:
+            # Try with absolutely minimal parameters
+            import importlib
+            # Reload groq module to clear any cached proxy settings
+            groq_module = importlib.import_module('groq')
+            importlib.reload(groq_module)
+            from groq import Groq as FreshGroq
+            client = FreshGroq(api_key=GROQ_API_KEY)
+            logger.info("Groq client initialized with fresh import")
+        except Exception as fallback_error:
+            logger.error(f"Groq client fallback initialization also failed: {fallback_error}")
+            return f"**{pr_info['basic']['title']}**\n\nAuthor: {pr_info['basic']['user']}\nFiles changed: {pr_info['basic']['changed_files']}\nChanges: +{pr_info['basic']['additions']} -{pr_info['basic']['deletions']}\n\nDescription: {pr_info['basic']['description'][:200] if pr_info['basic']['description'] else 'No description provided'}"
+    except Exception as e:
+        logger.error(f"Failed to initialize Groq client: {e}")
+        # Fallback to basic summary if Groq client fails
+        return f"**{pr_info['basic']['title']}**\n\nAuthor: {pr_info['basic']['user']}\nFiles changed: {pr_info['basic']['changed_files']}\nChanges: +{pr_info['basic']['additions']} -{pr_info['basic']['deletions']}\n\nDescription: {pr_info['basic']['description'][:200] if pr_info['basic']['description'] else 'No description provided'}"
     
     # Prioritize information based on importance
     description = pr_info['basic']['description'] or ''
