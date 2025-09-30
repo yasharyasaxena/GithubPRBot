@@ -19,6 +19,7 @@ Ensure you have these files in your repository:
 
 - `app.py` (Flask webhook server)
 - `requirements.txt` (Python dependencies)
+- `railway.toml` (Railway deployment configuration)
 - `.env.example` (Environment variable template)
 
 ### 2. Deploy to Railway
@@ -191,14 +192,14 @@ Railway automatically detects Python applications and handles deployment seamles
 Railway automatically:
 
 - Detects Python and installs dependencies from `requirements.txt`
-- Runs your Flask app using `python app.py`
+- Uses the `railway.toml` configuration file for deployment settings
 - Provides HTTPS URLs for webhooks
 - Handles scaling and health checks
 - Offers built-in monitoring and logs
 
-#### Custom Start Command (Optional):
+#### Railway Configuration File:
 
-If you need a custom start command, create a `railway.toml` file:
+The included `railway.toml` file configures Railway to run your Flask app correctly:
 
 ```toml
 [build]
@@ -206,7 +207,20 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "gunicorn -w 4 -b 0.0.0.0:$PORT app:app"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[env]
+PORT = "8080"
 ```
+
+This configuration:
+
+- Uses Gunicorn with 4 workers for production
+- Binds to all interfaces on Railway's PORT
+- References `app.py` (not the old `main.py`)
+- Restarts automatically on failures
+- Uses port 8080 (Railway's default)
 
 ## Security Configuration
 
@@ -270,25 +284,34 @@ Railway provides built-in monitoring and logging:
 
 ### Common Issues
 
-**1. Webhook not receiving events**
+**1. Railway "Module not found: main" Error**
+
+If you see `ModuleNotFoundError: No module named 'main'` in Railway logs:
+
+- Ensure the `railway.toml` file exists in your repository
+- The file should specify `startCommand = "gunicorn -w 4 -b 0.0.0.0:$PORT app:app"`
+- Push the `railway.toml` file to your repository
+- Redeploy your Railway app
+
+**2. Webhook not receiving events**
 
 - Check webhook URL is accessible (use tools like ngrok for local testing)
 - Verify GitHub webhook configuration
 - Check webhook secret matches
 
-**2. Discord messages not sending**
+**3. Discord messages not sending**
 
 - Verify Discord webhook URL is correct
 - Check Discord server permissions
 - Ensure webhook URL hasn't expired
 
-**3. GitHub API errors**
+**4. GitHub API errors**
 
 - Verify GitHub token has required permissions
 - Check API rate limits
 - Ensure repository access
 
-**4. Groq API failures**
+**5. Groq API failures**
 
 - Verify API key is valid
 - Check Groq service status
